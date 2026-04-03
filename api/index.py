@@ -14,9 +14,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 # Import our modules (copy from CLI version)
-from youtube_fetcher import YouTubeFetcher
-from transcript_extractor import TranscriptExtractor
-from summarizer import TranscriptSummarizer
+from .youtube_fetcher import YouTubeFetcher
+from .transcript_extractor import TranscriptExtractor
+from .summarizer import TranscriptSummarizer
 
 # Load environment variables
 load_dotenv()
