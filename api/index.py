@@ -137,12 +137,12 @@ async def process_channels(request: ChannelRequest):
                 # Process each video
                 for video in videos:
                     try:
-                        # Extract transcript
-                        transcript = transcript_extractor.get_transcript(video['id'])
+                        # Extract transcript - try auto-generated first
+                        transcript = transcript_extractor.get_auto_generated_transcript(video['id'])
                         
-                        # If no transcript, try auto-generated
+                        # If no auto-generated, try general method (manual or any available)
                         if not transcript:
-                            transcript = transcript_extractor.get_auto_generated_transcript(video['id'])
+                            transcript = transcript_extractor.get_transcript(video['id'])
                         
                         if not transcript:
                             video_summary = VideoSummary(
