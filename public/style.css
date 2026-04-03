@@ -24,16 +24,16 @@
     --primary-hover: #5C6BC0;
     --primary-light: #3949AB;
     --secondary-color: #90A4AE;
-    --background-color: #121212;
-    --card-background: #1E1E1E;
-    --text-color: #E0E0E0;
-    --text-light: #9E9E9E;
-    --border-color: #2D2D2D;
+    --background-color: #0a0a0a;
+    --card-background: #141414;
+    --text-color: #f5f5f5;
+    --text-light: #b0b0b0;
+    --border-color: #1f1f1f;
     --success-color: #81C784;
     --error-color: #E57373;
     --warning-color: #FFB74D;
-    --shadow-color: rgba(0, 0, 0, 0.3);
-    --shadow-hover: rgba(0, 0, 0, 0.4);
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    --shadow-hover: rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -134,7 +134,7 @@ section h2 {
 
 /* Configuration Status */
 .config-status {
-    background: #f5f5f5;
+    background: var(--card-background);
 }
 
 .status-items {
