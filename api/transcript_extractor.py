@@ -78,12 +78,13 @@ class TranscriptExtractor:
         try:
             transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
             
-            # Try to get the first available transcript
+            # Try to get the first available transcript (including auto-generated)
             for transcript in transcript_list:
                 try:
                     fetched = transcript.fetch()
                     full_transcript = self._combine_transcript_segments(fetched)
-                    logger.info(f"Found transcript in language '{transcript.language}' "
+                    transcript_type = "auto-generated" if transcript.is_generated else "manual"
+                    logger.info(f"Found {transcript_type} transcript in language '{transcript.language}' "
                                f"for video {video_id}")
                     return full_transcript
                 except Exception as e:
@@ -96,6 +97,38 @@ class TranscriptExtractor:
             
         except Exception as e:
             logger.error(f"Error listing transcripts for video {video_id}: {e}")
+            return None
+    
+    def get_auto_generated_transcript(self, video_id: str) -> Optional[str]:
+        """
+        Specifically try to get auto-generated transcript
+        
+        Args:
+            video_id: YouTube video ID
+            
+        Returns:
+            Auto-generated transcript as a string, or None if not available
+        """
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            
+            # Look specifically for auto-generated transcripts
+            for transcript in transcript_list:
+                if transcript.is_generated:
+                    try:
+                        fetched = transcript.fetch()
+                        full_transcript = self._combine_transcript_segments(fetched)
+                        logger.info(f"Found auto-generated transcript for video {video_id}")
+                        return full_transcript
+                    except Exception as e:
+                        logger.debug(f"Could not fetch auto-generated transcript: {e}")
+                        continue
+            
+            logger.warning(f"No auto-generated transcript found for video {video_id}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting auto-generated transcript for video {video_id}: {e}")
             return None
     
     def _combine_transcript_segments(self, transcript: List[Dict]) -> str:
