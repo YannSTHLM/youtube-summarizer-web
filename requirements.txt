@@ -13,15 +13,11 @@ google-auth-httplib2==0.2.0
 # YouTube Transcript API
 youtube-transcript-api==0.6.2
 
-# OpenAI API - use compatible version
-openai==1.3.0
-httpx==0.25.2
+# OpenAI API - compatible with Python 3.14
+openai>=1.40.0
 
 # Environment management
 python-dotenv==1.0.0
 
 # Pydantic (for data models)
-pydantic==2.5.3
-
-# HTTP requests
-requests==2.31.0
+pydantic>=2.5.3

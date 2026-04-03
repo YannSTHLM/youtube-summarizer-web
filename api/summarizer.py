@@ -3,6 +3,7 @@ Summarizer Module
 Handles AI-powered summarization of video transcripts using Z.ai
 """
 
+import json
 import logging
 from typing import Optional
 from openai import OpenAI
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 class TranscriptSummarizer:
     """Generates AI summaries of video transcripts"""
     
-    def __init__(self, api_key: str, model: str = "glm-4.7", max_tokens: int = 500):
+    def __init__(self, api_key: str, model: str = "glm-4-flash", max_tokens: int = 500):
         """
         Initialize summarizer with Z.ai client
         
@@ -54,19 +55,19 @@ class TranscriptSummarizer:
                 truncated_transcript += "\n\n[Transcript truncated due to length...]"
             
             # Create the prompt
-            system_prompt = """You are a helpful assistant that summarizes YouTube video transcripts. 
-            Create concise, informative summaries that capture the key points, main arguments, 
-            and important details from the video. Use clear, well-structured language.
-            Include bullet points for key takeaways when appropriate."""
+            system_prompt = (
+                "You are a helpful assistant that summarizes YouTube video transcripts. "
+                "Create concise, informative summaries that capture the key points, main arguments, "
+                "and important details from the video. Use clear, well-structured language. "
+                "Include bullet points for key takeaways when appropriate."
+            )
             
-            user_prompt = f"""Please summarize the following YouTube video transcript.
-            
-Video Title: {video_title if video_title else "Not provided"}
-
-Transcript:
-{truncated_transcript}
-
-Provide a clear, concise summary that captures the main points and key takeaways from this video."""
+            user_prompt = (
+                f"Please summarize the following YouTube video transcript.\n\n"
+                f"Video Title: {video_title if video_title else 'Not provided'}\n\n"
+                f"Transcript:\n{truncated_transcript}\n\n"
+                "Provide a clear, concise summary that captures the main points and key takeaways from this video."
+            )
 
             # Call OpenAI API
             response = self.client.chat.completions.create(
@@ -114,22 +115,21 @@ Provide a clear, concise summary that captures the main points and key takeaways
             if len(transcript) > max_transcript_length:
                 truncated_transcript += "\n\n[Transcript truncated...]"
             
-            system_prompt = """You are a helpful assistant that summarizes YouTube video transcripts.
-            Provide a structured response with:
-            1. A concise summary paragraph
-            2. A list of key points/takeaways
+            system_prompt = (
+                "You are a helpful assistant that summarizes YouTube video transcripts. "
+                "Provide a structured response with:\n"
+                "1. A concise summary paragraph\n"
+                "2. A list of key points/takeaways\n\n"
+                "Format your response as JSON with 'summary' and 'key_points' fields. "
+                "The 'key_points' should be an array of strings."
+            )
             
-            Format your response as JSON with 'summary' and 'key_points' fields.
-            The 'key_points' should be an array of strings."""
-            
-            user_prompt = f"""Summarize this YouTube video transcript:
-
-Video Title: {video_title if video_title else "Not provided"}
-
-Transcript:
-{truncated_transcript}
-
-Return JSON format with 'summary' (string) and 'key_points' (array of strings)."""
+            user_prompt = (
+                f"Summarize this YouTube video transcript:\n\n"
+                f"Video Title: {video_title if video_title else 'Not provided'}\n\n"
+                f"Transcript:\n{truncated_transcript}\n\n"
+                "Return JSON format with 'summary' (string) and 'key_points' (array of strings)."
+            )
 
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -142,7 +142,6 @@ Return JSON format with 'summary' (string) and 'key_points' (array of strings)."
                 response_format={"type": "json_object"}
             )
             
-            import json
             result = json.loads(response.choices[0].message.content)
             
             logger.info("Successfully generated structured summary")
@@ -171,14 +170,16 @@ Return JSON format with 'summary' (string) and 'key_points' (array of strings)."
             # Truncate transcript if needed
             truncated_transcript = transcript[:10000]
             
-            system_prompt = f"""Extract the {max_points} most important points from this transcript.
-            Return them as a simple list, one point per line, starting with '• '."""
+            system_prompt = (
+                f"Extract the {max_points} most important points from this transcript. "
+                "Return them as a simple list, one point per line, starting with '• '."
+            )
             
-            user_prompt = f"""Extract the key points from this transcript:
-
-{truncated_transcript}
-
-Provide exactly {max_points} bullet points."""
+            user_prompt = (
+                f"Extract the key points from this transcript:\n\n"
+                f"{truncated_transcript}\n\n"
+                f"Provide exactly {max_points} bullet points."
+            )
 
             response = self.client.chat.completions.create(
                 model=self.model,

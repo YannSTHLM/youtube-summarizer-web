@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkConfig();
     setupEventListeners();
     loadSavedChannels();
+    loadHistory();
 });
 
 // Initialize dark mode
@@ -331,18 +332,6 @@ function createVideoCard(video) {
     
     const publishedDate = new Date(video.published_at).toLocaleString();
     
-    let bodyContent = '';
-    if (video.summary) {
-        bodyContent = `
-            <div class="video-summary">${escapeHtml(video.summary)}</div>
-            <button class="btn btn-secondary download-btn" onclick="downloadSummary('${escapeHtml(video.title)}', '${escapeHtml(video.summary)}')">
-                📥 Download TXT
-            </button>
-        `;
-    } else if (video.error) {
-        bodyContent = `<p class="video-error">⚠️ ${escapeHtml(video.error)}</p>`;
-    }
-    
     card.innerHTML = `
         <div class="video-header">
             <div class="video-title">
@@ -356,9 +345,23 @@ function createVideoCard(video) {
             </div>
         </div>
         <div class="video-body">
-            ${bodyContent}
+            ${video.summary
+                ? `<div class="video-summary">${escapeHtml(video.summary)}</div>`
+                : `<p class="video-error">⚠️ ${escapeHtml(video.error)}</p>`
+            }
         </div>
     `;
+    
+    // Add download button with safe event listener (avoids XSS from inline onclick)
+    if (video.summary) {
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'btn btn-secondary download-btn';
+        downloadBtn.textContent = '📥 Download TXT';
+        downloadBtn.addEventListener('click', () => {
+            downloadSummary(video.title, video.summary);
+        });
+        card.querySelector('.video-body').appendChild(downloadBtn);
+    }
     
     return card;
 }
@@ -639,11 +642,6 @@ function loadFromHistory(item) {
         }
     });
 }
-
-// Initialize history on load
-document.addEventListener('DOMContentLoaded', () => {
-    loadHistory();
-});
 
 // Load saved channels from localStorage
 function loadSavedChannels() {

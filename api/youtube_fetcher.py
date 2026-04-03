@@ -4,7 +4,7 @@ Handles fetching video metadata from YouTube channels
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -76,7 +76,7 @@ class YouTubeFetcher:
         
         try:
             # Calculate time range for today
-            today = datetime.utcnow().date()
+            today = datetime.now(timezone.utc).date()
             start_of_day = datetime.combine(today, datetime.min.time())
             end_of_day = datetime.combine(today + timedelta(days=1), datetime.min.time())
             
@@ -94,8 +94,9 @@ class YouTubeFetcher:
             
             # Fetch videos from uploads playlist
             next_page_token = None
+            done = False
             
-            while len(videos) < max_videos:
+            while len(videos) < max_videos and not done:
                 playlist_response = self.youtube.playlistItems().list(
                     part='snippet',
                     playlistId=uploads_playlist_id,
@@ -122,11 +123,13 @@ class YouTubeFetcher:
                     elif published_at.replace(tzinfo=None) < start_of_day:
                         # Videos are in reverse chronological order
                         # If we've gone past today, we can stop
+                        done = True
                         break
                 
-                next_page_token = playlist_response.get('nextPageToken')
-                if not next_page_token:
-                    break
+                if not done:
+                    next_page_token = playlist_response.get('nextPageToken')
+                    if not next_page_token:
+                        break
             
             logger.info(f"Found {len(videos)} videos uploaded today from channel {channel_id}")
             

@@ -32,7 +32,7 @@ app = FastAPI(title="YouTube Transcript Summarizer")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -56,29 +56,19 @@ class ProcessResponse(BaseModel):
     videos: List[VideoSummary]
     stats: dict
 
-# Global state for tracking processing
-processing_state = {
-    "is_processing": False,
-    "current_channel": "",
-    "progress": 0,
-    "total": 0,
-    "videos_processed": []
-}
-
-
 @app.get("/")
-async def root():
+def root():
     """Health check endpoint"""
     return {"message": "YouTube Transcript Summarizer API", "status": "running"}
 
 
 @app.post("/api/process", response_model=ProcessResponse)
-async def process_channels(request: ChannelRequest):
+def process_channels(request: ChannelRequest):
     """
-    Process YouTube channels and generate summaries
+    Process YouTube channels and generate summaries.
+    Uses synchronous `def` so FastAPI runs it in a threadpool,
+    avoiding event-loop blocking from the YouTube/OpenAI clients.
     """
-    global processing_state
-    
     try:
         # Get API keys from environment
         youtube_api_key = os.getenv('YOUTUBE_API_KEY')
@@ -98,12 +88,6 @@ async def process_channels(request: ChannelRequest):
             max_tokens=int(os.getenv('MAX_SUMMARY_TOKENS', '500'))
         )
         
-        # Update processing state
-        processing_state["is_processing"] = True
-        processing_state["total"] = len(request.channels)
-        processing_state["progress"] = 0
-        processing_state["videos_processed"] = []
-        
         all_videos = []
         stats = {
             "channels_processed": 0,
@@ -115,8 +99,6 @@ async def process_channels(request: ChannelRequest):
         # Process each channel
         for channel_input in request.channels:
             try:
-                processing_state["current_channel"] = channel_input
-                
                 # Extract channel ID
                 channel_id = youtube_fetcher.extract_channel_id(channel_input)
                 
@@ -129,7 +111,6 @@ async def process_channels(request: ChannelRequest):
                 
                 if not videos:
                     logger.info(f"No videos today from {channel_name}")
-                    processing_state["progress"] += 1
                     continue
                 
                 stats["videos_found"] += len(videos)
@@ -186,22 +167,15 @@ async def process_channels(request: ChannelRequest):
                             stats["errors"] += 1
                         
                         all_videos.append(video_summary)
-                        processing_state["videos_processed"].append(video_summary.dict())
-                        
                     except Exception as e:
                         logger.error(f"Error processing video {video['title']}: {e}")
                         stats["errors"] += 1
                 
                 stats["channels_processed"] += 1
-                processing_state["progress"] += 1
                 
             except Exception as e:
                 logger.error(f"Error processing channel {channel_input}: {e}")
                 stats["errors"] += 1
-                processing_state["progress"] += 1
-        
-        # Mark processing as complete
-        processing_state["is_processing"] = False
         
         return ProcessResponse(
             success=True,
@@ -213,19 +187,18 @@ async def process_channels(request: ChannelRequest):
         )
         
     except Exception as e:
-        processing_state["is_processing"] = False
         logger.error(f"Error in process_channels: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/status")
-async def get_status():
-    """Get current processing status"""
-    return processing_state
+def get_status():
+    """Get API status"""
+    return {"status": "running"}
 
 
 @app.get("/api/config/check")
-async def check_config():
+def check_config():
     """Check if API keys are configured"""
     youtube_key = os.getenv('YOUTUBE_API_KEY')
     zai_key = os.getenv('ZAI_API_KEY')
@@ -237,7 +210,7 @@ async def check_config():
 
 
 @app.get("/api/test-transcript/{video_id}")
-async def test_transcript(video_id: str):
+def test_transcript(video_id: str):
     """Test transcript extraction for a specific video"""
     try:
         transcript_extractor = TranscriptExtractor()
