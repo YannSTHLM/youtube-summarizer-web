@@ -134,18 +134,24 @@ class TranscriptExtractor:
             logger.error(f"Error getting auto-generated transcript for video {video_id}: {e}")
             return None
     
-    def _combine_transcript_segments(self, transcript: List[Dict]) -> str:
+    def _combine_transcript_segments(self, transcript) -> str:
         """
         Combine transcript segments into a single text
         
         Args:
-            transcript: List of transcript segments with 'text' field
+            transcript: List of transcript segments (dicts or FetchedTranscriptSnippet objects)
             
         Returns:
             Combined transcript text
         """
-        # Extract text from each segment and join with spaces
-        segments = [segment['text'] for segment in transcript]
+        # youtube-transcript-api 0.6.x returns FetchedTranscriptSnippet objects
+        # with .text attribute; older versions return plain dicts with ['text']
+        segments = []
+        for segment in transcript:
+            if isinstance(segment, dict):
+                segments.append(segment.get('text', ''))
+            else:
+                segments.append(getattr(segment, 'text', ''))
         return ' '.join(segments)
     
     def get_transcript_with_timestamps(self, video_id: str) -> Optional[List[Dict]]:
