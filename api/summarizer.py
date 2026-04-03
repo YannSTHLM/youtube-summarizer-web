@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class TranscriptSummarizer:
     """Generates AI summaries of video transcripts"""
     
-    def __init__(self, api_key: str, model: str = "glm-4", max_tokens: int = 500):
+    def __init__(self, api_key: str, model: str = "glm-4.7", max_tokens: int = 500):
         """
         Initialize summarizer with Z.ai client
         
