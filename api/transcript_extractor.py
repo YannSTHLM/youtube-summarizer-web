@@ -76,27 +76,30 @@ class TranscriptExtractor:
         Try to get any available transcript regardless of language
         """
         try:
+            logger.info(f"Listing available transcripts for video {video_id}")
             transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
             
             # Try to get the first available transcript (including auto-generated)
             for transcript in transcript_list:
                 try:
+                    logger.info(f"Attempting to fetch transcript: language={transcript.language}, "
+                               f"is_generated={transcript.is_generated}")
                     fetched = transcript.fetch()
                     full_transcript = self._combine_transcript_segments(fetched)
                     transcript_type = "auto-generated" if transcript.is_generated else "manual"
-                    logger.info(f"Found {transcript_type} transcript in language '{transcript.language}' "
-                               f"for video {video_id}")
+                    logger.info(f"Successfully found {transcript_type} transcript in language '{transcript.language}' "
+                               f"for video {video_id} ({len(full_transcript)} chars)")
                     return full_transcript
                 except Exception as e:
-                    logger.debug(f"Could not fetch transcript in "
-                                f"'{transcript.language}': {e}")
+                    logger.warning(f"Could not fetch transcript in "
+                                  f"'{transcript.language}': {type(e).__name__}: {e}")
                     continue
             
             logger.warning(f"No fetchable transcript found for video {video_id}")
             return None
             
         except Exception as e:
-            logger.error(f"Error listing transcripts for video {video_id}: {e}")
+            logger.error(f"Error listing transcripts for video {video_id}: {type(e).__name__}: {e}")
             return None
     
     def get_auto_generated_transcript(self, video_id: str) -> Optional[str]:

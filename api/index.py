@@ -138,13 +138,16 @@ async def process_channels(request: ChannelRequest):
                 for video in videos:
                     try:
                         # Extract transcript - try auto-generated first
+                        logger.info(f"Attempting to get auto-generated transcript for video {video['id']}")
                         transcript = transcript_extractor.get_auto_generated_transcript(video['id'])
                         
                         # If no auto-generated, try general method (manual or any available)
                         if not transcript:
+                            logger.info(f"No auto-generated transcript, trying general method for video {video['id']}")
                             transcript = transcript_extractor.get_transcript(video['id'])
                         
                         if not transcript:
+                            logger.warning(f"No transcript found for video {video['id']}: {video['title']}")
                             video_summary = VideoSummary(
                                 video_id=video['id'],
                                 title=video['title'],
@@ -155,6 +158,8 @@ async def process_channels(request: ChannelRequest):
                             )
                             all_videos.append(video_summary)
                             continue
+                        
+                        logger.info(f"Successfully extracted transcript for video {video['id']} ({len(transcript)} chars)")
                         
                         # Generate summary
                         summary = summarizer.summarize(transcript, video['title'])
