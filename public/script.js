@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initDarkMode();
     checkConfig();
     setupEventListeners();
+    loadSavedChannels();
 });
 
 // Initialize dark mode
@@ -441,3 +442,47 @@ function loadFromHistory(item) {
 document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
 });
+
+// Load saved channels from localStorage
+function loadSavedChannels() {
+    const savedChannels = localStorage.getItem('savedChannels');
+    if (savedChannels) {
+        const channels = JSON.parse(savedChannels);
+        if (channels.length > 0) {
+            channelInput.value = channels.join('\n');
+        }
+    }
+}
+
+// Save channels to localStorage
+function saveChannels() {
+    const channelsText = channelInput.value.trim();
+    if (!channelsText) return;
+    
+    const channels = channelsText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    localStorage.setItem('savedChannels', JSON.stringify(channels));
+}
+
+// Add channel to saved list
+function addChannelToList(channel) {
+    const savedChannels = JSON.parse(localStorage.getItem('savedChannels') || '[]');
+    if (!savedChannels.includes(channel)) {
+        savedChannels.push(channel);
+        localStorage.setItem('savedChannels', JSON.stringify(savedChannels));
+    }
+}
+
+// Remove channel from saved list
+function removeChannelFromList(channel) {
+    const savedChannels = JSON.parse(localStorage.getItem('savedChannels') || '[]');
+    const updatedChannels = savedChannels.filter(ch => ch !== channel);
+    localStorage.setItem('savedChannels', JSON.stringify(updatedChannels));
+}
+
+// Get saved channels
+function getSavedChannels() {
+    return JSON.parse(localStorage.getItem('savedChannels') || '[]');
+}
+
+// Save channels when input changes
+channelInput.addEventListener('change', saveChannels);
