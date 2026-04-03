@@ -13,9 +13,6 @@ google-auth-httplib2==0.2.0
 # YouTube Transcript API
 youtube-transcript-api==0.6.2
 
-# yt-dlp - fallback for auto-generated transcript extraction
-yt-dlp>=2024.1.0
-
 # OpenAI API - compatible with Python 3.14
 openai>=1.40.0
 

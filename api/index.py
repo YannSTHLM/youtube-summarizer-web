@@ -69,6 +69,14 @@ def process_channels(request: ChannelRequest):
     Uses synchronous `def` so FastAPI runs it in a threadpool,
     avoiding event-loop blocking from the YouTube/OpenAI clients.
     """
+    MAX_CHANNELS = 10
+    
+    if len(request.channels) > MAX_CHANNELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many channels. Maximum {MAX_CHANNELS} channels allowed per request."
+        )
+    
     try:
         # Get API keys from environment
         youtube_api_key = os.getenv('YOUTUBE_API_KEY')
@@ -118,7 +126,7 @@ def process_channels(request: ChannelRequest):
                 # Process each video
                 for video in videos:
                     try:
-                        # Extract transcript (includes auto-generated fallback via yt-dlp)
+                        # Extract transcript (includes auto-generated fallback via page scraping)
                         logger.info(f"Extracting transcript for video {video['id']}")
                         transcript = transcript_extractor.get_transcript(video['id'])
                         
@@ -210,7 +218,7 @@ def test_transcript(video_id: str):
     try:
         transcript_extractor = TranscriptExtractor()
         
-        # Try transcript extraction (includes auto-generated fallback via yt-dlp)
+        # Try transcript extraction (includes auto-generated fallback via page scraping)
         logger.info(f"Testing transcript extraction for {video_id}")
         transcript = transcript_extractor.get_transcript(video_id)
         

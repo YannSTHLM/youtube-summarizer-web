@@ -113,7 +113,7 @@ pip install -r requirements.txt
 
 # Create .env file
 echo "YOUTUBE_API_KEY=your_key_here" > .env
-echo "OPENAI_API_KEY=your_key_here" >> .env
+echo "ZAI_API_KEY=your_key_here" >> .env
 
 # Run locally
 cd api
@@ -170,7 +170,7 @@ UC_x5XG1OV2P6uZZ5FSM9Ttw
 |----------|----------|---------|-------------|
 | `YOUTUBE_API_KEY` | Yes | - | YouTube Data API v3 key |
 | `ZAI_API_KEY` | Yes | - | Z.ai API key |
-| `ZAI_MODEL` | No | `glm-4-flash` | Z.ai model to use |
+| `ZAI_MODEL` | No | `glm-4.7` | Z.ai model to use |
 | `MAX_SUMMARY_TOKENS` | No | `500` | Max tokens for summary |
 
 ## Limitations

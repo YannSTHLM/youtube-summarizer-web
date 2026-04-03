@@ -6,6 +6,7 @@ Handles extracting transcripts from YouTube videos with multiple fallback method
 import json
 import logging
 import re
+import urllib.request
 import xml.etree.ElementTree as ET
 from typing import Optional, List, Dict
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -19,7 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 class TranscriptExtractor:
-    """Extracts transcripts from YouTube videos with fallback to yt-dlp"""
+    """Extracts transcripts from YouTube videos with multiple fallback methods"""
+    
+    # Browser-like headers to avoid bot detection when scraping
+    _BROWSER_HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    }
     
     def __init__(self, languages: List[str] = None):
         """
@@ -146,104 +154,148 @@ class TranscriptExtractor:
     
     def _get_transcript_via_ytdlp(self, video_id: str) -> Optional[str]:
         """
-        Fallback: extract transcript using yt-dlp.
+        Fallback: extract transcript by scraping YouTube page directly.
         
-        yt-dlp uses a different mechanism to access captions and can often
-        retrieve auto-generated transcripts that youtube-transcript-api cannot.
-        Uses browser cookies to avoid bot detection.
+        Scrapes the video page HTML to extract caption URLs from the embedded
+        player config (ytInitialPlayerResponse). Works in serverless environments
+        without browser cookies.
         """
-        try:
-            import yt_dlp
-        except ImportError:
-            logger.debug("yt-dlp not installed, skipping fallback")
-            return None
-        
         url = f"https://www.youtube.com/watch?v={video_id}"
         
-        # Build list of cookie strategies to try
-        cookie_strategies = []
-        for browser in ['safari', 'chrome', 'firefox', 'edge']:
-            cookie_strategies.append(('cookiesfrombrowser', browser))
-        cookie_strategies.append(('none', None))  # no cookies as last resort
+        # Step 1: Fetch the video page with browser-like headers
+        try:
+            req = urllib.request.Request(url, headers=self._BROWSER_HEADERS)
+            logger.info(f"Scraping YouTube page for caption URLs: {video_id}")
+            with urllib.request.urlopen(req, timeout=10) as response:
+                html = response.read().decode('utf-8')
+        except Exception as e:
+            logger.warning(f"Failed to fetch YouTube page for {video_id}: {e}")
+            return None
         
-        for strategy_name, browser in cookie_strategies:
-            try:
-                ydl_opts = {
-                    'skip_download': True,
-                    'quiet': True,
-                    'no_warnings': True,
-                    'format': 'worst',  # Avoid format selection errors; we only need subtitles
-                }
-                if browser:
-                    ydl_opts['cookiesfrombrowser'] = (browser,)
-                    logger.info(f"Attempting yt-dlp with {browser} cookies for video {video_id}")
-                else:
-                    logger.info(f"Attempting yt-dlp without cookies for video {video_id}")
-                
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(url, download=False)
-                    
-                    # Try manual subtitles first, then auto-generated captions
-                    for sub_key in ['subtitles', 'automatic_captions']:
-                        subs = info.get(sub_key, {})
-                        if not subs:
-                            continue
-                        
-                        is_auto = sub_key == 'automatic_captions'
-                        result = self._try_sub_langs(subs, video_id, is_auto)
-                        if result:
-                            return result
-                    
-                    logger.debug(f"yt-dlp ({strategy_name}): No subtitles found for video {video_id}")
-                    
-            except Exception as e:
-                logger.debug(f"yt-dlp ({strategy_name}) failed for video {video_id}: {e}")
-                continue
+        # Step 2: Extract ytInitialPlayerResponse from the page
+        player_response = self._extract_player_response(html, video_id)
+        if not player_response:
+            return None
         
-        logger.warning(f"yt-dlp: All strategies failed for video {video_id}")
-        return None
-    
-    def _try_sub_langs(self, subs: dict, video_id: str, is_auto: bool) -> Optional[str]:
-        """Try to fetch subtitles from a yt-dlp subtitle dict, preferring certain languages"""
-        import urllib.request
+        # Step 3: Get caption tracks from player response
+        captions_data = player_response.get('captions', {})
+        caption_tracks = captions_data.get('playerCaptionsTracklistRenderer', {}).get('captionTracks', [])
         
-        # Build priority list: preferred langs, then any 'en' variant, then any
-        lang_order = []
-        for lang in self.languages:
-            if lang in subs:
-                lang_order.append(lang)
-        for lang in subs:
-            if lang.startswith('en') and lang not in lang_order:
-                lang_order.append(lang)
-        for lang in subs:
-            if lang not in lang_order:
-                lang_order.append(lang)
+        if not caption_tracks:
+            logger.warning(f"No caption tracks found in page data for {video_id}")
+            return None
         
-        for lang in lang_order:
-            lang_subs = subs.get(lang, [])
-            if not lang_subs:
+        logger.info(f"Found {len(caption_tracks)} caption tracks for {video_id}")
+        
+        # Step 4: Prioritize tracks by language preference
+        prioritized = self._prioritize_tracks(caption_tracks)
+        
+        # Step 5: Try each track
+        for track in prioritized:
+            track_url = track.get('baseUrl')
+            lang = track.get('languageCode', 'unknown')
+            kind = track.get('kind', 'manual')
+            is_auto = kind == 'asr'
+            
+            if not track_url:
                 continue
             
-            # Prefer json3 (easy to parse), then srv1 (XML), then vtt
-            for fmt in ['json3', 'srv1', 'vtt', 'ttml']:
-                sub = next((s for s in lang_subs if s.get('ext') == fmt), None)
-                if sub and sub.get('url'):
-                    sub_type = "auto-generated" if is_auto else "manual"
-                    logger.info(f"yt-dlp: Fetching {sub_type} subtitle "
-                               f"(lang={lang}, format={fmt}) for video {video_id}")
-                    try:
-                        with urllib.request.urlopen(sub['url']) as response:
-                            content = response.read().decode('utf-8')
-                        text = self._parse_subtitle_content(content, fmt)
-                        if text and len(text.strip()) > 20:
-                            logger.info(f"yt-dlp: Successfully extracted transcript "
-                                       f"({len(text)} characters) for video {video_id}")
-                            return text
-                    except Exception as e:
-                        logger.debug(f"yt-dlp: Failed to fetch/parse {fmt} subtitle: {e}")
-                        continue
+            track_type = "auto-generated" if is_auto else "manual"
+            logger.info(f"Fetching {track_type} caption (lang={lang}) for {video_id}")
+            
+            try:
+                # Request JSON3 format for easier parsing
+                fmt_url = track_url + '&fmt=json3'
+                req = urllib.request.Request(fmt_url, headers=self._BROWSER_HEADERS)
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    content = response.read().decode('utf-8')
+                
+                text = self._parse_subtitle_content(content, 'json3')
+                if text and len(text.strip()) > 20:
+                    logger.info(f"Successfully extracted {track_type} transcript "
+                               f"({len(text)} chars) for {video_id}")
+                    return text
+            except Exception as e:
+                logger.debug(f"Failed to fetch/parse caption track (lang={lang}): {e}")
+                # Try srv1 format as fallback
+                try:
+                    fmt_url = track_url + '&fmt=srv1'
+                    req = urllib.request.Request(fmt_url, headers=self._BROWSER_HEADERS)
+                    with urllib.request.urlopen(req, timeout=10) as response:
+                        content = response.read().decode('utf-8')
+                    
+                    text = self._parse_subtitle_content(content, 'srv1')
+                    if text and len(text.strip()) > 20:
+                        logger.info(f"Successfully extracted {track_type} transcript "
+                                   f"via srv1 ({len(text)} chars) for {video_id}")
+                        return text
+                except Exception as e2:
+                    logger.debug(f"srv1 fallback also failed: {e2}")
+                    continue
         
+        logger.warning(f"All caption tracks failed for {video_id}")
         return None
+    
+    def _extract_player_response(self, html: str, video_id: str) -> Optional[dict]:
+        """Extract ytInitialPlayerResponse from YouTube page HTML"""
+        # Try multiple patterns YouTube uses to embed player data
+        patterns = [
+            r'ytInitialPlayerResponse\s*=\s*(\{.+?\});',
+            r'ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;',
+            r'var\s+ytInitialPlayerResponse\s*=\s*(\{.+?\});',
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, html)
+            if match:
+                try:
+                    data = json.loads(match.group(1))
+                    if 'captions' in data or 'videoDetails' in data:
+                        logger.info(f"Extracted player response for {video_id}")
+                        return data
+                except json.JSONDecodeError:
+                    continue
+        
+        # Fallback: try to find captions in ytInitialData
+        match = re.search(r'ytInitialData\s*=\s*(\{.+?\});', html)
+        if match:
+            try:
+                data = json.loads(match.group(1))
+                # Look for captions in the embedded player response
+                player_response = data.get('playerResponse', {})
+                if isinstance(player_response, str):
+                    player_response = json.loads(player_response)
+                if 'captions' in player_response:
+                    return player_response
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        logger.warning(f"Could not extract player response from page for {video_id}")
+        return None
+    
+    def _prioritize_tracks(self, tracks: list) -> list:
+        """Sort caption tracks by language preference"""
+        def track_score(track):
+            lang = track.get('languageCode', '')
+            kind = track.get('kind', '')
+            
+            # Prefer non-ASR (manual) tracks, then ASR
+            is_asr = kind == 'asr'
+            
+            if lang in self.languages and not is_asr:
+                return (0, self.languages.index(lang))
+            elif lang in self.languages:
+                return (1, self.languages.index(lang))
+            elif lang.startswith('en') and not is_asr:
+                return (2, 0)
+            elif lang.startswith('en'):
+                return (3, 0)
+            elif not is_asr:
+                return (4, 0)
+            else:
+                return (5, 0)
+        
+        return sorted(tracks, key=track_score)
     
     def _parse_subtitle_content(self, content: str, fmt: str) -> Optional[str]:
         """Parse subtitle content based on format"""

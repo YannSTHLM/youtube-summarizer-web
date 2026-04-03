@@ -8,6 +8,7 @@ const API_URL = '/api';
 // State
 let isProcessing = false;
 let results = [];
+const MAX_CHANNELS = 10;
 
 // DOM Elements
 const channelInput = document.getElementById('channelInput');
@@ -144,71 +145,18 @@ function showToast(message, type = 'info') {
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
     
-    // Add styles
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        padding: 12px 24px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 500;
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-    `;
-    
-    // Set background color based on type
-    switch(type) {
-        case 'success':
-            toast.style.backgroundColor = '#4caf50';
-            break;
-        case 'error':
-            toast.style.backgroundColor = '#f44336';
-            break;
-        case 'warning':
-            toast.style.backgroundColor = '#ff9800';
-            break;
-        default:
-            toast.style.backgroundColor = '#2196F3';
-    }
-    
     document.body.appendChild(toast);
     
     // Remove after 3 seconds
     setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
+        toast.classList.add('toast-exit');
         setTimeout(() => {
-            document.body.removeChild(toast);
+            if (toast.parentNode) {
+                document.body.removeChild(toast);
+            }
         }, 300);
     }, 3000);
 }
-
-// Add CSS for toast animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 
 // Process channels
 async function processChannels() {
@@ -224,6 +172,11 @@ async function processChannels() {
     
     if (channels.length === 0) {
         showError('Please enter at least one valid channel');
+        return;
+    }
+    
+    if (channels.length > MAX_CHANNELS) {
+        showError(`Maximum ${MAX_CHANNELS} channels allowed at once to avoid timeout`);
         return;
     }
     
@@ -285,7 +238,7 @@ function updateProgress() {
 }
 
 // Display results
-function displayResults(data) {
+function displayResults(data, saveHistory = true) {
     progressSection.style.display = 'none';
     resultsSection.style.display = 'block';
     
@@ -311,7 +264,7 @@ function displayResults(data) {
     resultsList.innerHTML = '';
     
     if (data.videos.length === 0) {
-        resultsList.innerHTML = '<p style="text-align: center; color: #666;">No videos found for today from these channels.</p>';
+        resultsList.innerHTML = '<p style="text-align: center; color: var(--text-light);">No videos found for today from these channels.</p>';
         return;
     }
     
@@ -320,9 +273,11 @@ function displayResults(data) {
         resultsList.appendChild(card);
     });
     
-    // Save to history
-    const channels = channelInput.value.trim().split('\n').filter(ch => ch.trim());
-    saveToHistory(channels, data.videos);
+    // Save to history only when processing new results (not when loading from history)
+    if (saveHistory) {
+        const channels = channelInput.value.trim().split('\n').filter(ch => ch.trim());
+        saveToHistory(channels, data.videos);
+    }
 }
 
 // Create video card element
@@ -488,7 +443,7 @@ function exportAsPDF() {
                     <div class="video-title">${index + 1}. ${escapeHtml(video.title)}</div>
                     <div class="video-meta">
                         <strong>Channel:</strong> ${escapeHtml(video.channel_name)}<br>
-                        <strong>URL:</strong> <a href="${video.url}">${video.url}</a><br>
+                        <strong>URL:</strong> <a href="${escapeHtml(video.url)}">${escapeHtml(video.url)}</a><br>
                         <strong>Published:</strong> ${new Date(video.published_at).toLocaleString()}
                     </div>
                     <div class="summary">
@@ -640,7 +595,7 @@ function loadFromHistory(item) {
             summaries_generated: results.filter(v => v.summary).length,
             errors: results.filter(v => v.error).length
         }
-    });
+    }, false); // false = don't re-save to history
 }
 
 // Load saved channels from localStorage
@@ -661,27 +616,6 @@ function saveChannels() {
     
     const channels = channelsText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     localStorage.setItem('savedChannels', JSON.stringify(channels));
-}
-
-// Add channel to saved list
-function addChannelToList(channel) {
-    const savedChannels = JSON.parse(localStorage.getItem('savedChannels') || '[]');
-    if (!savedChannels.includes(channel)) {
-        savedChannels.push(channel);
-        localStorage.setItem('savedChannels', JSON.stringify(savedChannels));
-    }
-}
-
-// Remove channel from saved list
-function removeChannelFromList(channel) {
-    const savedChannels = JSON.parse(localStorage.getItem('savedChannels') || '[]');
-    const updatedChannels = savedChannels.filter(ch => ch !== channel);
-    localStorage.setItem('savedChannels', JSON.stringify(updatedChannels));
-}
-
-// Get saved channels
-function getSavedChannels() {
-    return JSON.parse(localStorage.getItem('savedChannels') || '[]');
 }
 
 // Save channels when input changes
