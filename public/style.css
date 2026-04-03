@@ -1,13 +1,13 @@
 /* YouTube Transcript Summarizer - Styles */
 
 :root {
-    --primary-color: #ff0000;
-    --primary-hover: #cc0000;
-    --secondary-color: #606060;
-    --background-color: #f9f9f9;
+    --primary-color: #2196F3;
+    --primary-hover: #1976D2;
+    --secondary-color: #607D8B;
+    --background-color: #f5f5f5;
     --card-background: #ffffff;
-    --text-color: #333333;
-    --text-light: #666666;
+    --text-color: #212121;
+    --text-light: #757575;
     --border-color: #e0e0e0;
     --success-color: #4caf50;
     --error-color: #f44336;
@@ -47,7 +47,7 @@ header {
     text-align: center;
     margin-bottom: 30px;
     padding: 30px 20px;
-    background: linear-gradient(135deg, var(--primary-color), #ff5555);
+    background: linear-gradient(135deg, var(--primary-color), #64B5F6);
     color: white;
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
