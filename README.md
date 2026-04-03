@@ -9,7 +9,7 @@ A beautiful web application that monitors YouTube channels and generates AI-powe
 - 🎨 **Modern Web Interface** - Clean, responsive design
 - 📺 **Multi-Channel Support** - Process up to 20+ channels at once
 - 📝 **Real-Time Progress** - Live updates while processing
-- 🤖 **AI Summaries** - Powered by OpenAI GPT-4
+- 🤖 **AI Summaries** - Powered by Z.ai
 - 📥 **Download Summaries** - Save as text files
 - ☁️ **Vercel Ready** - Free hosting on Vercel
 
@@ -70,7 +70,7 @@ After deploying, add your API keys:
 | Variable | Description |
 |----------|-------------|
 | `YOUTUBE_API_KEY` | Your YouTube Data API v3 key |
-| `OPENAI_API_KEY` | Your OpenAI API key |
+| `ZAI_API_KEY` | Your Z.ai API key |
 
 ### 4. Get API Keys
 
@@ -80,10 +80,11 @@ After deploying, add your API keys:
 3. Enable "YouTube Data API v3"
 4. Go to Credentials → Create API Key
 
-#### OpenAI API Key:
-1. Go to [OpenAI Platform](https://platform.openai.com/)
-2. Sign in and go to API Keys
-3. Create a new secret key
+#### Z.ai API Key:
+1. Go to [Z.ai Platform](https://open.bigmodel.cn/)
+2. Sign in or create an account
+3. Go to API Keys section
+4. Create a new API key
 
 ### 5. Access Your App
 
@@ -158,7 +159,7 @@ UC_x5XG1OV2P6uZZ5FSM9Ttw
 
 1. **Fetch Videos** - Gets videos uploaded today from each channel
 2. **Extract Transcripts** - Downloads video transcripts/captions
-3. **Generate Summaries** - Uses OpenAI to create concise summaries
+3. **Generate Summaries** - Uses Z.ai to create concise summaries
 4. **Display Results** - Shows summaries with download options
 
 ## Configuration
@@ -168,8 +169,8 @@ UC_x5XG1OV2P6uZZ5FSM9Ttw
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `YOUTUBE_API_KEY` | Yes | - | YouTube Data API v3 key |
-| `OPENAI_API_KEY` | Yes | - | OpenAI API key |
-| `OPENAI_MODEL` | No | `gpt-4` | OpenAI model to use |
+| `ZAI_API_KEY` | Yes | - | Z.ai API key |
+| `ZAI_MODEL` | No | `glm-4-flash` | Z.ai model to use |
 | `MAX_SUMMARY_TOKENS` | No | `500` | Max tokens for summary |
 
 ## Limitations
@@ -214,6 +215,6 @@ This project is provided as-is for personal use.
 
 - YouTube Data API for video metadata
 - youtube-transcript-api for transcript extraction
-- OpenAI for AI summarization
+- Z.ai for AI summarization
 - FastAPI for the backend
 - Vercel for hosting

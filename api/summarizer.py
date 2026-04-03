@@ -1,6 +1,6 @@
 """
 Summarizer Module
-Handles AI-powered summarization of video transcripts using OpenAI
+Handles AI-powered summarization of video transcripts using Z.ai
 """
 
 import logging
@@ -13,16 +13,20 @@ logger = logging.getLogger(__name__)
 class TranscriptSummarizer:
     """Generates AI summaries of video transcripts"""
     
-    def __init__(self, api_key: str, model: str = "gpt-4", max_tokens: int = 500):
+    def __init__(self, api_key: str, model: str = "glm-4-flash", max_tokens: int = 500):
         """
-        Initialize summarizer with OpenAI client
+        Initialize summarizer with Z.ai client
         
         Args:
-            api_key: OpenAI API key
-            model: Model to use for summarization
+            api_key: Z.ai API key
+            model: Model to use for summarization (default: glm-4-flash)
             max_tokens: Maximum tokens for summary output
         """
-        self.client = OpenAI(api_key=api_key)
+        # Z.ai uses OpenAI-compatible API format
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url="https://open.bigmodel.cn/api/paas/v4"
+        )
         self.model = model
         self.max_tokens = max_tokens
     

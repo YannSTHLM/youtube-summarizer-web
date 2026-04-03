@@ -82,19 +82,19 @@ async def process_channels(request: ChannelRequest):
     try:
         # Get API keys from environment
         youtube_api_key = os.getenv('YOUTUBE_API_KEY')
-        openai_api_key = os.getenv('OPENAI_API_KEY')
+        zai_api_key = os.getenv('ZAI_API_KEY')
         
         if not youtube_api_key:
             raise HTTPException(status_code=500, detail="YouTube API key not configured")
-        if not openai_api_key:
-            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+        if not zai_api_key:
+            raise HTTPException(status_code=500, detail="Z.ai API key not configured")
         
         # Initialize components
         youtube_fetcher = YouTubeFetcher(youtube_api_key)
         transcript_extractor = TranscriptExtractor()
         summarizer = TranscriptSummarizer(
-            api_key=openai_api_key,
-            model=os.getenv('OPENAI_MODEL', 'gpt-4'),
+            api_key=zai_api_key,
+            model=os.getenv('ZAI_MODEL', 'glm-4-flash'),
             max_tokens=int(os.getenv('MAX_SUMMARY_TOKENS', '500'))
         )
         
@@ -219,11 +219,11 @@ async def get_status():
 async def check_config():
     """Check if API keys are configured"""
     youtube_key = os.getenv('YOUTUBE_API_KEY')
-    openai_key = os.getenv('OPENAI_API_KEY')
+    zai_key = os.getenv('ZAI_API_KEY')
     
     return {
         "youtube_configured": bool(youtube_key and youtube_key != 'your_youtube_api_key_here'),
-        "openai_configured": bool(openai_key and openai_key != 'your_openai_api_key_here')
+        "openai_configured": bool(zai_key and zai_key != 'your_zai_api_key_here')
     }
 
 
