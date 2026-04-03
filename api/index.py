@@ -236,6 +236,49 @@ async def check_config():
     }
 
 
+@app.get("/api/test-transcript/{video_id}")
+async def test_transcript(video_id: str):
+    """Test transcript extraction for a specific video"""
+    try:
+        transcript_extractor = TranscriptExtractor()
+        
+        # Try auto-generated first
+        logger.info(f"Testing auto-generated transcript for {video_id}")
+        transcript = transcript_extractor.get_auto_generated_transcript(video_id)
+        
+        if transcript:
+            return {
+                "success": True,
+                "method": "auto-generated",
+                "length": len(transcript),
+                "preview": transcript[:200] + "..." if len(transcript) > 200 else transcript
+            }
+        
+        # Try general method
+        logger.info(f"Testing general transcript for {video_id}")
+        transcript = transcript_extractor.get_transcript(video_id)
+        
+        if transcript:
+            return {
+                "success": True,
+                "method": "general",
+                "length": len(transcript),
+                "preview": transcript[:200] + "..." if len(transcript) > 200 else transcript
+            }
+        
+        return {
+            "success": False,
+            "error": "No transcript found"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in test_transcript: {type(e).__name__}: {e}")
+        return {
+            "success": False,
+            "error": f"{type(e).__name__}: {str(e)}"
+        }
+
+
 # For local development
 if __name__ == "__main__":
     import uvicorn
