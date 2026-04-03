@@ -37,9 +37,39 @@ const EXAMPLE_CHANNELS = [
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    initDarkMode();
     checkConfig();
     setupEventListeners();
 });
+
+// Initialize dark mode
+function initDarkMode() {
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const toggleIcon = darkModeToggle.querySelector('.toggle-icon');
+    
+    // Check for saved preference or system preference
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        toggleIcon.textContent = '☀️';
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        toggleIcon.textContent = '🌙';
+    }
+    
+    // Toggle dark mode
+    darkModeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        toggleIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    });
+}
 
 // Setup event listeners
 function setupEventListeners() {

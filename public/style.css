@@ -14,6 +14,15 @@
     --warning-color: #ff9800;
 }
 
+/* Dark Mode Variables */
+[data-theme="dark"] {
+    --background-color: #1a1a1a;
+    --card-background: #2d2d2d;
+    --text-color: #e0e0e0;
+    --text-light: #a0a0a0;
+    --border-color: #404040;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -44,6 +53,18 @@ header {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 100%;
+}
+
+.header-text {
+    flex: 1;
+    text-align: left;
+}
+
 header h1 {
     font-size: 2rem;
     margin-bottom: 10px;
@@ -52,6 +73,35 @@ header h1 {
 header p {
     opacity: 0.9;
     font-size: 1.1rem;
+}
+
+/* Dark Mode Toggle */
+.dark-mode-toggle {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.dark-mode-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.toggle-icon {
+    font-size: 1.3rem;
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .toggle-icon {
+    transform: rotate(180deg);
 }
 
 /* Sections */
