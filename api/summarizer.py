@@ -23,9 +23,10 @@ class TranscriptSummarizer:
             max_tokens: Maximum tokens for summary output
         """
         # Z.ai uses OpenAI-compatible API format
+        # Try the standard Z.ai endpoint
         self.client = OpenAI(
             api_key=api_key,
-            base_url="https://api.z.ai/api/coding/paas/v4"
+            base_url="https://open.bigmodel.cn/api/paas/v4"
         )
         self.model = model
         self.max_tokens = max_tokens
