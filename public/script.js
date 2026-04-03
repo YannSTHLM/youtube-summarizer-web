@@ -161,6 +161,10 @@ async function processChannels() {
     progressText.textContent = 'Starting...';
     currentTask.textContent = '';
     
+    // Set progress variables
+    progressStep = 0;
+    totalSteps = channels.length;
+    
     const progressInterval = setInterval(updateProgress, 1000);
     
     try {
@@ -191,23 +195,16 @@ async function processChannels() {
     }
 }
 
-// Update progress from server
-async function updateProgress() {
-    try {
-        const response = await fetch(`${API_URL}/status`);
-        const status = await response.json();
-        
-        if (status.total > 0) {
-            const percentage = (status.progress / status.total) * 100;
-            progressFill.style.width = `${percentage}%`;
-            progressText.textContent = `Processing channel ${status.progress} of ${status.total}`;
-            
-            if (status.current_channel) {
-                currentTask.textContent = `Current: ${status.current_channel}`;
-            }
-        }
-    } catch (error) {
-        console.error('Error updating progress:', error);
+// Update progress - simulate based on channels count
+let progressStep = 0;
+let totalSteps = 0;
+
+function updateProgress() {
+    if (totalSteps > 0 && progressStep < totalSteps) {
+        progressStep++;
+        const percentage = (progressStep / totalSteps) * 100;
+        progressFill.style.width = `${percentage}%`;
+        progressText.textContent = `Processing channel ${progressStep} of ${totalSteps}`;
     }
 }
 
