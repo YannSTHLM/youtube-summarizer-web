@@ -135,6 +135,78 @@ function showError(message) {
     }, 5000);
 }
 
+// Show toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    // Add styles
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    // Set background color based on type
+    switch(type) {
+        case 'success':
+            toast.style.backgroundColor = '#4caf50';
+            break;
+        case 'error':
+            toast.style.backgroundColor = '#f44336';
+            break;
+        case 'warning':
+            toast.style.backgroundColor = '#ff9800';
+            break;
+        default:
+            toast.style.backgroundColor = '#2196F3';
+    }
+    
+    document.body.appendChild(toast);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+// Add CSS for toast animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
 // Process channels
 async function processChannels() {
     if (isProcessing) return;
