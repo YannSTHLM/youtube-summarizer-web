@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Transcript Summarizer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 YouTube Transcript Summarizer</h1>
+            <p>Get AI-powered summaries from YouTube channel videos</p>
+        </header>
+
+        <main>
+            <!-- Configuration Status -->
+            <section class="config-status" id="configStatus">
+                <h2>⚙️ Configuration</h2>
+                <div class="status-items">
+                    <div class="status-item" id="youtubeStatus">
+                        <span class="status-icon">⏳</span>
+                        <span>YouTube API</span>
+                    </div>
+                    <div class="status-item" id="openaiStatus">
+                        <span class="status-icon">⏳</span>
+                        <span>OpenAI API</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Channel Input -->
+            <section class="input-section">
+                <h2>📺 YouTube Channels</h2>
+                <div class="input-group">
+                    <label for="channelInput">Add channels (one per line):</label>
+                    <textarea 
+                        id="channelInput" 
+                        placeholder="Enter channel IDs, URLs, or @handles:&#10;&#10;UC_x5XG1OV2P6uZZ5FSM9Ttw&#10;https://www.youtube.com/@channelname&#10;@channelhandle"
+                        rows="6"
+                    ></textarea>
+                </div>
+                <div class="button-group">
+                    <button id="addChannelsBtn" class="btn btn-secondary">
+                        ➕ Add Example Channels
+                    </button>
+                    <button id="clearBtn" class="btn btn-secondary">
+                        🗑️ Clear
+                    </button>
+                </div>
+            </section>
+
+            <!-- Process Button -->
+            <section class="action-section">
+                <button id="processBtn" class="btn btn-primary btn-large">
+                    🚀 Process Channels & Generate Summaries
+                </button>
+            </section>
+
+            <!-- Progress Section -->
+            <section class="progress-section" id="progressSection" style="display: none;">
+                <h2>📊 Progress</h2>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p class="progress-text" id="progressText">Starting...</p>
+                </div>
+                <div class="current-task" id="currentTask"></div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <h2>📝 Summaries</h2>
+                <div class="stats-bar" id="statsBar"></div>
+                <div class="results-controls">
+                    <button id="downloadAllBtn" class="btn btn-secondary">
+                        📥 Download All (TXT)
+                    </button>
+                    <button id="clearResultsBtn" class="btn btn-secondary">
+                        🗑️ Clear Results
+                    </button>
+                </div>
+                <div class="results-list" id="resultsList"></div>
+            </section>
+
+            <!-- Error Messages -->
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+        </main>
+
+        <footer>
+            <p>Configure API keys in Vercel environment variables</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
