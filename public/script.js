@@ -26,6 +26,9 @@ const clearResultsBtn = document.getElementById('clearResultsBtn');
 const errorMessage = document.getElementById('errorMessage');
 const youtubeStatus = document.getElementById('youtubeStatus');
 const openaiStatus = document.getElementById('openaiStatus');
+const historyList = document.getElementById('historyList');
+const historySearch = document.getElementById('historySearch');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
 // Example channels
 const EXAMPLE_CHANNELS = [
@@ -78,6 +81,8 @@ function setupEventListeners() {
     clearBtn.addEventListener('click', clearInput);
     downloadAllBtn.addEventListener('click', downloadAllSummaries);
     clearResultsBtn.addEventListener('click', clearResults);
+    clearHistoryBtn.addEventListener('click', clearHistory);
+    historySearch.addEventListener('input', filterHistory);
 }
 
 // Check API configuration
@@ -241,6 +246,10 @@ function displayResults(data) {
         const card = createVideoCard(video);
         resultsList.appendChild(card);
     });
+    
+    // Save to history
+    const channels = channelInput.value.trim().split('\n').filter(ch => ch.trim());
+    saveToHistory(channels, data.videos);
 }
 
 // Create video card element
@@ -338,3 +347,100 @@ function clearResults() {
     resultsList.innerHTML = '';
     statsBar.innerHTML = '';
 }
+
+// Load history from localStorage
+function loadHistory() {
+    const history = JSON.parse(localStorage.getItem('summaryHistory') || '[]');
+    displayHistory(history);
+}
+
+// Display history
+function displayHistory(history) {
+    if (history.length === 0) {
+        historyList.innerHTML = '<p class="history-empty">No history yet. Process some channels to see your summaries here.</p>';
+        return;
+    }
+    
+    historyList.innerHTML = '';
+    
+    history.forEach((item, index) => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        historyItem.onclick = () => loadFromHistory(item);
+        
+        const date = new Date(item.timestamp).toLocaleDateString();
+        const videoCount = item.videos ? item.videos.length : 0;
+        
+        historyItem.innerHTML = `
+            <div class="history-item-title">${escapeHtml(item.channels.join(', '))}</div>
+            <div class="history-item-meta">
+                <span>📅 ${date}</span>
+                <span>📺 ${videoCount} videos</span>
+            </div>
+        `;
+        
+        historyList.appendChild(historyItem);
+    });
+}
+
+// Filter history
+function filterHistory() {
+    const searchTerm = historySearch.value.toLowerCase();
+    const history = JSON.parse(localStorage.getItem('summaryHistory') || '[]');
+    
+    const filtered = history.filter(item => {
+        const channelMatch = item.channels.some(ch => ch.toLowerCase().includes(searchTerm));
+        const titleMatch = item.videos && item.videos.some(v => v.title.toLowerCase().includes(searchTerm));
+        return channelMatch || titleMatch;
+    });
+    
+    displayHistory(filtered);
+}
+
+// Clear history
+function clearHistory() {
+    if (confirm('Are you sure you want to clear all history?')) {
+        localStorage.removeItem('summaryHistory');
+        loadHistory();
+    }
+}
+
+// Save to history
+function saveToHistory(channels, videos) {
+    const history = JSON.parse(localStorage.getItem('summaryHistory') || '[]');
+    
+    const newEntry = {
+        channels: channels,
+        videos: videos,
+        timestamp: new Date().toISOString()
+    };
+    
+    history.unshift(newEntry);
+    
+    // Keep only last 50 entries
+    if (history.length > 50) {
+        history.pop();
+    }
+    
+    localStorage.setItem('summaryHistory', JSON.stringify(history));
+    loadHistory();
+}
+
+// Load from history
+function loadFromHistory(item) {
+    results = item.videos || [];
+    displayResults({
+        videos: results,
+        stats: {
+            channels_processed: item.channels.length,
+            videos_found: results.length,
+            summaries_generated: results.filter(v => v.summary).length,
+            errors: results.filter(v => v.error).length
+        }
+    });
+}
+
+// Initialize history on load
+document.addEventListener('DOMContentLoaded', () => {
+    loadHistory();
+});
