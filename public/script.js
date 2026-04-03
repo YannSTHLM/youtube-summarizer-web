@@ -81,6 +81,8 @@ function setupEventListeners() {
     addChannelsBtn.addEventListener('click', addExampleChannels);
     clearBtn.addEventListener('click', clearInput);
     downloadAllBtn.addEventListener('click', downloadAllSummaries);
+    document.getElementById('exportMarkdownBtn').addEventListener('click', exportAsMarkdown);
+    document.getElementById('exportPdfBtn').addEventListener('click', exportAsPDF);
     clearResultsBtn.addEventListener('click', clearResults);
     clearHistoryBtn.addEventListener('click', clearHistory);
     historySearch.addEventListener('input', filterHistory);
@@ -383,6 +385,134 @@ function downloadAllSummaries() {
     });
     
     downloadTextFile(allContent, `youtube_summaries_${new Date().toISOString().split('T')[0]}.txt`);
+}
+
+// Export as Markdown
+function exportAsMarkdown() {
+    if (results.length === 0) {
+        showError('No summaries to export');
+        return;
+    }
+    
+    let markdownContent = `# YouTube Video Summaries\n\n`;
+    markdownContent += `**Generated:** ${new Date().toLocaleString()}\n\n`;
+    markdownContent += `---\n\n`;
+    
+    results.forEach((video, index) => {
+        if (video.summary) {
+            markdownContent += `## ${index + 1}. ${video.title}\n\n`;
+            markdownContent += `**Channel:** ${video.channel_name}  \n`;
+            markdownContent += `**URL:** [Watch Video](${video.url})  \n`;
+            markdownContent += `**Published:** ${new Date(video.published_at).toLocaleString()}\n\n`;
+            markdownContent += `### Summary\n\n${video.summary}\n\n`;
+            markdownContent += `---\n\n`;
+        }
+    });
+    
+    downloadTextFile(markdownContent, `youtube_summaries_${new Date().toISOString().split('T')[0]}.md`);
+    showToast('Exported as Markdown', 'success');
+}
+
+// Export as PDF (using browser print)
+function exportAsPDF() {
+    if (results.length === 0) {
+        showError('No summaries to export');
+        return;
+    }
+    
+    // Create a new window with formatted content
+    const printWindow = window.open('', '_blank');
+    
+    let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>YouTube Video Summaries</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    line-height: 1.6;
+                }
+                h1 {
+                    color: #2196F3;
+                    border-bottom: 2px solid #2196F3;
+                    padding-bottom: 10px;
+                }
+                .video-item {
+                    margin-bottom: 30px;
+                    page-break-inside: avoid;
+                }
+                .video-title {
+                    font-size: 18px;
+                    font-weight: bold;
+                    color: #333;
+                    margin-bottom: 10px;
+                }
+                .video-meta {
+                    color: #666;
+                    font-size: 14px;
+                    margin-bottom: 15px;
+                }
+                .summary {
+                    background: #f5f5f5;
+                    padding: 15px;
+                    border-radius: 5px;
+                    border-left: 4px solid #2196F3;
+                }
+                .generated-date {
+                    text-align: center;
+                    color: #999;
+                    margin-top: 30px;
+                    font-size: 12px;
+                }
+                @media print {
+                    body { margin: 0; }
+                    .video-item { page-break-after: always; }
+                }
+            </style>
+        </head>
+        <body>
+            <h1>YouTube Video Summaries</h1>
+    `;
+    
+    results.forEach((video, index) => {
+        if (video.summary) {
+            htmlContent += `
+                <div class="video-item">
+                    <div class="video-title">${index + 1}. ${escapeHtml(video.title)}</div>
+                    <div class="video-meta">
+                        <strong>Channel:</strong> ${escapeHtml(video.channel_name)}<br>
+                        <strong>URL:</strong> <a href="${video.url}">${video.url}</a><br>
+                        <strong>Published:</strong> ${new Date(video.published_at).toLocaleString()}
+                    </div>
+                    <div class="summary">
+                        <strong>Summary:</strong><br><br>
+                        ${escapeHtml(video.summary)}
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    htmlContent += `
+            <div class="generated-date">
+                Generated on: ${new Date().toLocaleString()}
+            </div>
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for content to load then print
+    printWindow.onload = function() {
+        printWindow.print();
+        showToast('PDF export ready - use Print dialog to save as PDF', 'info');
+    };
 }
 
 // Helper: Download text file
