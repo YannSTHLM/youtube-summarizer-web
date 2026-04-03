@@ -85,6 +85,10 @@ Provide a clear, concise summary that captures the main points and key takeaways
             
         except Exception as e:
             logger.error(f"Error generating summary: {e}")
+            # Try to log more details about the error
+            if hasattr(e, 'response'):
+                logger.error(f"Response status: {e.response.status_code if hasattr(e.response, 'status_code') else 'N/A'}")
+                logger.error(f"Response body: {e.response.text if hasattr(e.response, 'text') else 'N/A'}")
             return None
     
     def summarize_with_key_points(self, transcript: str, video_title: str = "") -> Optional[dict]:
