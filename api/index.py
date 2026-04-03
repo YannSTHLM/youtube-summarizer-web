@@ -13,7 +13,7 @@ import logging
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Import our modules (copy from CLI version)
+# Import our modules
 from .youtube_fetcher import YouTubeFetcher
 from .transcript_extractor import TranscriptExtractor
 from .summarizer import TranscriptSummarizer
@@ -84,7 +84,7 @@ def process_channels(request: ChannelRequest):
         transcript_extractor = TranscriptExtractor()
         summarizer = TranscriptSummarizer(
             api_key=zai_api_key,
-            model=os.getenv('ZAI_MODEL', 'glm-4-flash'),
+            model=os.getenv('ZAI_MODEL', 'glm-4.7'),
             max_tokens=int(os.getenv('MAX_SUMMARY_TOKENS', '500'))
         )
         
@@ -118,14 +118,9 @@ def process_channels(request: ChannelRequest):
                 # Process each video
                 for video in videos:
                     try:
-                        # Extract transcript - try auto-generated first
-                        logger.info(f"Attempting to get auto-generated transcript for video {video['id']}")
-                        transcript = transcript_extractor.get_auto_generated_transcript(video['id'])
-                        
-                        # If no auto-generated, try general method (manual or any available)
-                        if not transcript:
-                            logger.info(f"No auto-generated transcript, trying general method for video {video['id']}")
-                            transcript = transcript_extractor.get_transcript(video['id'])
+                        # Extract transcript (includes auto-generated fallback via yt-dlp)
+                        logger.info(f"Extracting transcript for video {video['id']}")
+                        transcript = transcript_extractor.get_transcript(video['id'])
                         
                         if not transcript:
                             logger.warning(f"No transcript found for video {video['id']}: {video['title']}")
@@ -215,26 +210,14 @@ def test_transcript(video_id: str):
     try:
         transcript_extractor = TranscriptExtractor()
         
-        # Try auto-generated first
-        logger.info(f"Testing auto-generated transcript for {video_id}")
-        transcript = transcript_extractor.get_auto_generated_transcript(video_id)
-        
-        if transcript:
-            return {
-                "success": True,
-                "method": "auto-generated",
-                "length": len(transcript),
-                "preview": transcript[:200] + "..." if len(transcript) > 200 else transcript
-            }
-        
-        # Try general method
-        logger.info(f"Testing general transcript for {video_id}")
+        # Try transcript extraction (includes auto-generated fallback via yt-dlp)
+        logger.info(f"Testing transcript extraction for {video_id}")
         transcript = transcript_extractor.get_transcript(video_id)
         
         if transcript:
             return {
                 "success": True,
-                "method": "general",
+                "method": "transcript",
                 "length": len(transcript),
                 "preview": transcript[:200] + "..." if len(transcript) > 200 else transcript
             }

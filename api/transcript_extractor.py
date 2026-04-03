@@ -150,6 +150,7 @@ class TranscriptExtractor:
         
         yt-dlp uses a different mechanism to access captions and can often
         retrieve auto-generated transcripts that youtube-transcript-api cannot.
+        Uses browser cookies to avoid bot detection.
         """
         try:
             import yt_dlp
@@ -157,38 +158,50 @@ class TranscriptExtractor:
             logger.debug("yt-dlp not installed, skipping fallback")
             return None
         
-        try:
-            url = f"https://www.youtube.com/watch?v={video_id}"
-            
-            ydl_opts = {
-                'skip_download': True,
-                'quiet': True,
-                'no_warnings': True,
-            }
-            
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                logger.info(f"Attempting yt-dlp fallback for video {video_id}")
-                info = ydl.extract_info(url, download=False)
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        
+        # Build list of cookie strategies to try
+        cookie_strategies = []
+        for browser in ['safari', 'chrome', 'firefox', 'edge']:
+            cookie_strategies.append(('cookiesfrombrowser', browser))
+        cookie_strategies.append(('none', None))  # no cookies as last resort
+        
+        for strategy_name, browser in cookie_strategies:
+            try:
+                ydl_opts = {
+                    'skip_download': True,
+                    'quiet': True,
+                    'no_warnings': True,
+                    'format': 'worst',  # Avoid format selection errors; we only need subtitles
+                }
+                if browser:
+                    ydl_opts['cookiesfrombrowser'] = (browser,)
+                    logger.info(f"Attempting yt-dlp with {browser} cookies for video {video_id}")
+                else:
+                    logger.info(f"Attempting yt-dlp without cookies for video {video_id}")
                 
-                # Try manual subtitles first, then auto-generated captions
-                for sub_key in ['subtitles', 'automatic_captions']:
-                    subs = info.get(sub_key, {})
-                    if not subs:
-                        continue
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=False)
                     
-                    is_auto = sub_key == 'automatic_captions'
+                    # Try manual subtitles first, then auto-generated captions
+                    for sub_key in ['subtitles', 'automatic_captions']:
+                        subs = info.get(sub_key, {})
+                        if not subs:
+                            continue
+                        
+                        is_auto = sub_key == 'automatic_captions'
+                        result = self._try_sub_langs(subs, video_id, is_auto)
+                        if result:
+                            return result
                     
-                    # Try preferred languages
-                    result = self._try_sub_langs(subs, video_id, is_auto)
-                    if result:
-                        return result
-                
-                logger.warning(f"yt-dlp: No subtitles found for video {video_id}")
-                return None
-                
-        except Exception as e:
-            logger.debug(f"yt-dlp fallback failed for video {video_id}: {e}")
-            return None
+                    logger.debug(f"yt-dlp ({strategy_name}): No subtitles found for video {video_id}")
+                    
+            except Exception as e:
+                logger.debug(f"yt-dlp ({strategy_name}) failed for video {video_id}: {e}")
+                continue
+        
+        logger.warning(f"yt-dlp: All strategies failed for video {video_id}")
+        return None
     
     def _try_sub_langs(self, subs: dict, video_id: str, is_auto: bool) -> Optional[str]:
         """Try to fetch subtitles from a yt-dlp subtitle dict, preferring certain languages"""
