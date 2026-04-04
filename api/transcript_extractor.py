@@ -58,7 +58,8 @@ class TranscriptExtractor:
         try:
             transcript = YouTubeTranscriptApi.get_transcript(
                 video_id,
-                languages=self.languages
+                languages=self.languages,
+                format="text"
             )
             
             full_transcript = self._combine_transcript_segments(transcript)
